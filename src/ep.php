@@ -1,4 +1,3 @@
-#!/usr/bin/php
 <?php
 use \Phasty\MySQLDumper;
 include __DIR__ . "/../vendor/autoload.php";
@@ -16,3 +15,5 @@ $operation($argv);
 function usage($argv) {
     echo "{$argv[0]} -o operation\n";
 }
+
+__HALT_COMPILER();

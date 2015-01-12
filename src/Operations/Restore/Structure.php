@@ -3,7 +3,7 @@ namespace Phasty\MySQLDumper\Operations\Restore {
     use \Phasty\Log\File as log;
     use \Phasty\MySQLDumper\Executor;
     class Structure extends Common {
-        public function restore($options) {
+        public function copy($options) {
             $targetDir = $options[ "t" ];
             $this->recreateDatabase($options);
             Executor::execute("mysql", $options, " < $targetDir/structure.sql");

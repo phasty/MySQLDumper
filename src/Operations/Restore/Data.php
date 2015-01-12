@@ -3,7 +3,7 @@ namespace Phasty\MySQLDumper\Operations\Restore {
     use \Phasty\Log\File as log;
     use \Phasty\MySQLDumper\Executor;
     class Data extends Common {
-        public function restore($infile, $options) {
+        public function copy($infile, $options) {
             $table = pathinfo($infile, PATHINFO_FILENAME);
             $sql = [
                 "SET FOREIGN_KEY_CHECKS=0",
