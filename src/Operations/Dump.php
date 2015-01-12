@@ -10,9 +10,25 @@ namespace Phasty\MySQLDumper\Operations {
          * -P port
          * -p password
          * -c process count
+         * -t target dir
+         * -i ignore tables
+         * --config Config file
          */
         public function __invoke(array $argv) {
-            $options = getopt("h:u:d:p:P:o:c:");
+            $options = getopt("h:u:d:p:P:c:t:i:o:", [
+                "config:"
+            ]);
+            if (!empty($options[ "config" ])) {
+                $configFile = $options[ "config" ];
+                if (!file_exists($configFile)) {
+                    throw new \Exception("Config file not found: $configFile");
+                }
+                $options = require $configFile;
+                if (!is_array($options)) {
+                    throw new \Exception("Wrong config file format");
+                }
+            }
+
             if (!isset($options[ "u" ]) ||
                 !isset($options[ "d" ])
             ) {
@@ -22,15 +38,25 @@ namespace Phasty\MySQLDumper\Operations {
             $options += [
                 "h" => "localhost",
                 "P" => "3306",
-                "c" => 4
+                "c" => 4,
+                "t" => "./",
             ];
+            $options[ "t" ] = realpath($options[ "t" ]);
             $this->dumpStructure($options);
             $tables = $this->getTablesList($options);
             $this->dumpData($tables, $options);
         }
+
         protected function getTablesList($options) {
             echo "Getting tables list...";
-            $return = Executor::execute("mysql -e 'show tables\G'", $options, "| grep Tables_in | cut -f2 -d' '");
+            $database = $options[ "d" ];
+            $where = "";
+            if (!empty($options[ "i" ])) {
+                $ignore = explode(",", $options[ "i" ]);
+                $where = "AND TABLE_NAME NOT LIKE '" . implode("' AND TABLE_NAME NOT LIKE '", $ignore) . "' ";
+            }
+            $sql = escapeshellarg("SELECT TABLE_NAME FROM information_schema.TABLES WHERE table_schema = \"$database\" $where ORDER BY data_length DESC\G");
+            $return = Executor::execute("mysql -e $sql", $options, "| grep TABLE_NAME | cut -f2 -d' '");
             echo "\nGot tables list\n";
             return $return;
         }
@@ -49,25 +75,22 @@ namespace Phasty\MySQLDumper\Operations {
             $structureDumper->dump($options);
             $streamSet->listen();
         }
+
         public function dumpData($tablesList, $options) {
             echo "Dumping tables\n";
             $streamSet = \Phasty\Stream\StreamSet::instance();
             $runNextDumper = null;
-            $onComplete = function($event, $dumper) use	(&$runNextDumper) {
-//                echo $dumper->getTableName(), " dumped\n";
-                $runNextDumper();
-            };
             $onError = function($event, $dumper) use ($streamSet) {
   //              echo $dumper->getTableName(), " error: " , var_export($event, 1), "\n";
             };
-            $runNextDumper = function() use (&$tablesList, $options, $onComplete, $onError) {
+            $runNextDumper = function() use (&$tablesList, &$runNextDumper, $options, $onError) {
                 if (empty($tablesList)) {
-                    echo "Finished dumping";
+                    echo "Finished dumping\n";
                     return;
                 }
                 $table = array_shift($tablesList);
                 $dumper = new Process(new Dump\Data());
-                $dumper->on("complete", $onComplete)->on("error", $onError);
+                $dumper->on("complete", $runNextDumper)->on("error", $onError);
                 echo "Dumping $table\n";
                 $dumper->dump($table, $options);
             };
@@ -77,7 +100,7 @@ namespace Phasty\MySQLDumper\Operations {
             $streamSet->listen();
         }
         static public function usage($argv) {
-            echo "{$argv[0]} -o dump -u user -d database [ -h host -p port -P password -i exclude-tables-list -e include-tables-list ]\n";
+            echo "{$argv[0]} -o dump -u user -d database [ -h host -p port -P password -i exclude-tables-list -e include-tables-list ]\nOr\n{$argv[0]} -o dump --config config.php";
         }
     }
 }

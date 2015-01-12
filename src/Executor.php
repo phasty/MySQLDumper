@@ -2,15 +2,23 @@
 namespace Phasty\MySQLDumper {
     class Executor {
         static public function execute($cmd, $options, $tail = "") {
-            $host     = escapeshellarg($options['h']);
-            $database = escapeshellarg($options['d']);
-            $user     = escapeshellarg($options['u']);
-            $port     = intval($options['P']);
-            $cmd .= " --host $host --database $database --user $user --port $port";
+            if (isset($options['h'])) {
+                $cmd .= " --host " . escapeshellarg($options['h']);
+            }
+            if (isset($options['u'])) {
+                $cmd .= " --user " . escapeshellarg($options['u']);
+            }
+            if (isset($options['P'])) {
+                $cmd .= " --port " . intval($options['P']);
+            }
             if (isset($options[ "p" ])) {
                 $cmd .= " -p" . escapeshellarg($options['p']);
             }
+            if (isset($options['d'])) {
+                $cmd .= " " . escapeshellarg($options['d']);
+            }
             $cmd .= " $tail";
+
             exec($cmd, $output, $return);
             \Phasty\Log\File::error($cmd);
             if ($return) {

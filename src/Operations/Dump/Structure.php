@@ -5,7 +5,7 @@ namespace Phasty\MySQLDumper\Operations\Dump {
     class Structure extends Common {
         public function dump($options) {
             $targetDir = $options[ "t" ];
-            Executor::execute("mysqldump --add-drop-database --add-drop-table --allow-keywords --skip-comments --no-data --result-file $targetDir/structure.sql", $options);
+            Executor::execute("mysqldump --no-create-db --routines --add-drop-table --allow-keywords --skip-comments --no-data --result-file $targetDir/structure.sql", $options);
             $this->trigger("complete");
         }
     }

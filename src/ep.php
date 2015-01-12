@@ -1,3 +1,4 @@
+#!/usr/bin/php
 <?php
 use \Phasty\MySQLDumper;
 include __DIR__ . "/../vendor/autoload.php";
